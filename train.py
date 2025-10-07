@@ -15,7 +15,7 @@ def main(config: Config):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    print("\n" + "=" * 20 + " STAGE 1: MULTITASK UNSUPERVISED PRE-TRAINING " + "=" * 20)
+    print("\n" + "=" * 20 + " STAGE 1: Multitask Unsupervised Pre-training " + "=" * 20)
     unsupervised_dataset = UnsupervisedTrainDataset(config.data_dir, config)
     unsupervised_dataloader = DataLoader(unsupervised_dataset, batch_size=config.batch_size, shuffle=True, drop_last=True)
 
@@ -51,10 +51,11 @@ def main(config: Config):
             loss_c = criterion_contrastive(logits_c, labels_c)
 
             v_recon_clean, s_recon_clean, t_recon_clean = model.forward_reconstruction(v_q, s_q, t_q)
-            loss_r2 = (nn.functional.mse_loss(v_recon_clean, v_orig) +                        nn.functional.mse_loss(s_recon_clean, s_orig) +                        nn.functional.mse_loss(t_recon_clean, t_orig)) / 3.0
+            loss_r2 = (nn.functional.mse_loss(v_recon_clean, v_orig) + nn.functional.mse_loss(s_recon_clean, s_orig) + nn.functional.mse_loss(t_recon_clean, t_orig)) / 3.0
 
             (v_mask_in, s_mask_in, t_mask_in), masked_modality, mask_indices = feature_mask_aug(v_orig, s_orig, t_orig, config)
             v_recon_mask, s_recon_mask, t_recon_mask = model.forward_reconstruction(v_mask_in, s_mask_in, t_mask_in)
+            
             if masked_modality == 0:
                 loss_r1 = nn.functional.mse_loss(v_recon_mask, v_orig)
             elif masked_modality == 1:
@@ -81,11 +82,9 @@ def main(config: Config):
             else:
                 scale_c = scale_r2 = 1.0
 
-            total_loss_step = (
-                    scale_c  * config.contrastive_weight  * loss_c +
-                    config.recon_mask_weight   * loss_r1 +
-                    scale_r2 * config.recon_clean_weight  * loss_r2
-            )
+            total_loss_step = (scale_c  * config.contrastive_weight  * loss_c +
+                                config.recon_mask_weight   * loss_r1 +
+                                scale_r2 * config.recon_clean_weight  * loss_r2)
 
             total_loss_step.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
@@ -104,7 +103,7 @@ def main(config: Config):
 
     trained_base_encoder = deepcopy(model.base_encoder_q)
 
-    print("\n" + "=" * 20 + " STAGE 2: SUPERVISED EVALUATION " + "=" * 20)
+    print("\n" + "=" * 20 + " Supervised Evaluation " + "=" * 20)
     train_dataset_sup = SupervisedDataset(config.data_dir, 'train', config)
     val_dataset_sup   = SupervisedDataset(config.data_dir, 'valid', config)
     test_dataset_sup  = SupervisedDataset(config.data_dir, 'test',  config)
