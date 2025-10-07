@@ -10,12 +10,10 @@ class SimpleProjector(nn.Module):
     def __init__(self, input_dim, output_dim):
         super().__init__()
         hidden = (input_dim + output_dim) // 2
-        self.net = nn.Sequential(
-            nn.Linear(input_dim, hidden),
-            nn.ReLU(),
-            nn.LayerNorm(hidden),
-            nn.Linear(hidden, output_dim)
-        )
+        self.net = nn.Sequential(nn.Linear(input_dim, hidden),
+                                nn.ReLU(),
+                                nn.LayerNorm(hidden),
+                                nn.Linear(hidden, output_dim))
 
     def forward(self, x):
         return self.net(x)
@@ -34,8 +32,7 @@ class CrossModalAttentionEncoder(nn.Module):
             nhead=n_heads,
             dim_feedforward=self.p_dim * 4,
             batch_first=True,
-            activation='gelu'
-        )
+            activation='gelu')
         self.fusion_attention = nn.TransformerEncoder(fusion_layer, num_layers=1)
         self.final_mlp = nn.Linear(self.p_dim, self.p_dim)
 
@@ -54,8 +51,7 @@ class CrossModalAttentionEncoder(nn.Module):
             v_f, s_f, t_f,
             v_s.squeeze(1), v_t.squeeze(1),
             s_v.squeeze(1), s_t.squeeze(1),
-            t_v.squeeze(1), t_s.squeeze(1)
-        ], dim=1)
+            t_v.squeeze(1), t_s.squeeze(1)], dim=1)
 
         fused_sequence = self.fusion_attention(feature_sequence)
         fused_representation = fused_sequence.mean(dim=1)
@@ -66,11 +62,9 @@ class ModalityDecoder(nn.Module):
     def __init__(self, latent_dim, output_dim):
         super().__init__()
         hidden = (latent_dim + output_dim) // 2
-        self.decoder = nn.Sequential(
-            nn.Linear(latent_dim, hidden),
-            nn.ReLU(),
-            nn.Linear(hidden, output_dim)
-        )
+        self.decoder = nn.Sequential(nn.Linear(latent_dim, hidden),
+                        nn.ReLU(),
+                        nn.Linear(hidden, output_dim))
 
     def forward(self, x):
         return self.decoder(x)
@@ -86,19 +80,15 @@ class MultitaskUnsupervisedModel(nn.Module):
         self.base_encoder_k = CrossModalAttentionEncoder(config)
 
         # Projection heads
-        self.projection_head_q = nn.Sequential(
-            nn.Linear(config.projection_dim, config.projection_dim), nn.ReLU(),
-            nn.Linear(config.projection_dim, config.moco_dim)
-        )
-        self.projection_head_k = nn.Sequential(
-            nn.Linear(config.projection_dim, config.projection_dim), nn.ReLU(),
-            nn.Linear(config.projection_dim, config.moco_dim)
-        )
+        self.projection_head_q = nn.Sequential(nn.Linear(config.projection_dim, config.projection_dim), nn.ReLU(),
+                                                nn.Linear(config.projection_dim, config.moco_dim))
+        self.projection_head_k = nn.Sequential(nn.Linear(config.projection_dim, config.projection_dim), nn.ReLU(),
+                                                nn.Linear(config.projection_dim, config.moco_dim))
 
         # Decoders
-        self.video_decoder  = ModalityDecoder(config.projection_dim, config.video_dim)
+        self.video_decoder = ModalityDecoder(config.projection_dim, config.video_dim)
         self.speech_decoder = ModalityDecoder(config.projection_dim, config.speech_dim)
-        self.text_decoder   = ModalityDecoder(config.projection_dim, config.text_dim)
+        self.text_decoder = ModalityDecoder(config.projection_dim, config.text_dim)
 
         # Initialize key encoder from query encoder
         for param_q, param_k in zip(self.base_encoder_q.parameters(), self.base_encoder_k.parameters()):
@@ -162,15 +152,13 @@ class SupervisedClassifier(nn.Module):
         self.base_encoder = base_encoder
         for param in self.base_encoder.parameters():
             param.requires_grad = False
-        self.classifier_head = nn.Sequential(
-            nn.Linear(config.projection_dim, 2048),
-            nn.ReLU(),
-            nn.Linear(2048, 1024),
-            nn.ReLU(),
-            nn.Linear(1024, 256),
-            nn.ReLU(),
-            nn.Linear(256, config.n_classes)
-        )
+        self.classifier_head = nn.Sequential(nn.Linear(config.projection_dim, 2048),
+                                            nn.ReLU(),
+                                            nn.Linear(2048, 1024),
+                                            nn.ReLU(),
+                                            nn.Linear(1024, 256),
+                                            nn.ReLU(),
+                                            nn.Linear(256, config.n_classes))
 
     def forward(self, v, s, t):
         with torch.no_grad():
