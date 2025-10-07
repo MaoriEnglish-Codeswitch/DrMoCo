@@ -2,4 +2,4 @@
 
 ## Database Process
 
-For database preparation, please follow the instruction in [this link](https://your-dataset-link.com)
+For database preparation, please follow the instruction in [this link]([https://your-dataset-link.com](https://github.com/zeroQiaoba/GCNet))
